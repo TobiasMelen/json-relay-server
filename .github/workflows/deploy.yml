@@ -45,7 +45,7 @@ jobs:
       - name: Setup service with ssh
         if: ${{ env.SSH_USER }}
         run: |
-          ssh -q -oBatchMode=yes -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST
+          ssh -q -oBatchMode=yes -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST '
           cd /tmp/${{ env.APP_NAME }}/
           if sudo systemctl is active ${{ env.APP_NAME }}.service; then \ 
             sudo systemctl stop ${{ env.APP_NAME }}.service; \
@@ -57,6 +57,7 @@ jobs:
           rm -r ${{ env.APP_NAME }}
           sleep 1
           systemctl status ${{ env.APP_NAME }}.service
+          '
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
