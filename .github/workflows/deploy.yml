@@ -33,7 +33,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
       
       - name: Deploy with rsync
-        if: ${{ env.SSH_PRIVATE_KEY }}
+        if: ${{ env.SSH_USER }}
         run: | 
           rsync -e "ssh -i $SSH_KEY_PATH" $SSH_USER@$SSH_HOST:/target/release/$APP_NAME /$APP_NAME/
         env:
