@@ -34,7 +34,7 @@ jobs:
       - name: Deploy with rsync
         if: ${{ env.SSH_USER }}
         run: | 
-          rsync -e "ssh -i $SSH_KEY_PATH" $SSH_USER@$SSH_HOST:/target/release/$APP_NAME /$APP_NAME/
+          rsync -e "ssh -i $SSH_KEY_PATH" /target/release/$APP_NAME $SSH_USER@$SSH_HOST:/$APP_NAME/
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
