@@ -1,0 +1,9 @@
+[Unit]
+Description=Relay server service.
+
+[Service]
+Type=simple
+ExecStart=$APP_NAME
+
+[Install]
+WantedBy=multi-user.target

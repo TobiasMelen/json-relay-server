@@ -16,8 +16,11 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       
       - name: Compile Rust
-        run: |
-          cargo +stable build --release
+        run: cargo +stable build --release
+      
+      - name: Format Systemd unit file
+        run: envsubst < systemd.service > $APP_NAME.service
+
       # Credits https://stackoverflow.com/a/60479844
       - name: Copy SSH key and known hosts
         if: ${{ env.SSH_PRIVATE_KEY }}
@@ -34,7 +37,23 @@ jobs:
       - name: Deploy with rsync
         if: ${{ env.SSH_USER }}
         run: | 
-          rsync -e "ssh -i $SSH_KEY_PATH" target/release/$APP_NAME $SSH_USER@$SSH_HOST:/$APP_NAME/
+          rsync -e "ssh -i $SSH_KEY_PATH" target/release/$APP_NAME $APP_NAME.service $SSH_USER@$SSH_HOST:/tmp/$APP_NAME/
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+
+      - name: Setup service with ssh
+        run: |
+          ssh -oBatchMode=yes -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST
+          cd /tmp/${{ env.APP_NAME }}
+          sudo systemctl stop ${{ env.APP_NAME }}.service
+          sudo mv ${{ env.APP_NAME }}.service /etc/systemd/system/
+          sudo mv ${{ env.APP_NAME }} /usr/local/bin/
+          sudo systemctl enable --now ${{ env.APP_NAME }}.service
+          cd ..
+          rm -r ${{ env.APP_NAME }}
+          sleep 1
+          systemctl status ${{ env.APP_NAME }}.service
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
