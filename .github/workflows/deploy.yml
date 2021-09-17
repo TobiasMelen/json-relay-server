@@ -47,7 +47,7 @@ jobs:
         run: |
           ssh -q -oBatchMode=yes -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST '
           cd /tmp/${{ env.APP_NAME }}/
-          if sudo systemctl is active ${{ env.APP_NAME }}.service; then \ 
+          if sudo systemctl is-active ${{ env.APP_NAME }}.service; then \ 
             sudo systemctl stop ${{ env.APP_NAME }}.service; \
           fi
           sudo mv ${{ env.APP_NAME }}.service /etc/systemd/system/
