@@ -42,14 +42,12 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
 
-      - name: Setup service with ssh
+      - name: Setup Systemd service through SSH
         if: ${{ env.SSH_USER }}
         run: |
           ssh -q -oBatchMode=yes -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST '
           cd /tmp/${{ env.APP_NAME }}/
-          if sudo systemctl is-active ${{ env.APP_NAME }}.service; then \ 
-            sudo systemctl stop ${{ env.APP_NAME }}.service; \
-          fi
+          if sudo systemctl is-active -q ${{ env.APP_NAME }}.service && sudo systemctl stop ${{ env.APP_NAME }}.service
           sudo mv ${{ env.APP_NAME }}.service /etc/systemd/system/
           sudo mv ${{ env.APP_NAME }} /usr/local/bin/
           sudo systemctl enable --now ${{ env.APP_NAME }}.service
