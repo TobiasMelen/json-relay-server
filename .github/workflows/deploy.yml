@@ -21,7 +21,7 @@ jobs:
       
       # Credits https://stackoverflow.com/a/60479844
       - name: Copy SSH key and known hosts
-        if: ${{secrets.SSH_PRIVATE_KEY}}
+        if: ${{ env.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh/
           echo "$SSH_PRIVATE_KEY" > ../private.key
@@ -29,13 +29,13 @@ jobs:
           ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
         shell: bash
         env:
-          SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
-          SSH_HOST: ${{secrets.SSH_HOST}}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
       
       - name: Deploy with rsync
-        if: ${{secrets.SSH_PRIVATE_KEY}}
+        if: ${{ env.SSH_PRIVATE_KEY }}
         run: | 
           rsync -e "ssh -i $SSH_KEY_PATH" $SSH_USER@$SSH_HOST:/target/release/$APP_NAME /$APP_NAME/
         env:
-          SSH_USER: ${{secrets.SSH_USER}}
-          SSH_HOST: ${{secrets.SSH_HOST}}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
