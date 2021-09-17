@@ -14,4 +14,4 @@ jobs:
           working-directory: signaling-app
       - name: Compile Rust
         run: |
-          cargo build +stable --release
+          cargo +stable build --release
