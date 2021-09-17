@@ -18,7 +18,6 @@ jobs:
       - name: Compile Rust
         run: |
           cargo +stable build --release
-      
       # Credits https://stackoverflow.com/a/60479844
       - name: Copy SSH key and known hosts
         if: ${{ env.SSH_PRIVATE_KEY }}
