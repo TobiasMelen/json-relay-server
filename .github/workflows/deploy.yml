@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SSH_KEY_PATH: ${{ github.workspace }}/../private.key
-      APP_NAME: json-message-relay
+      APP_NAME: json-relay-server
     steps:
       - uses: actions/checkout@v2
       
