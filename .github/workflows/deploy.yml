@@ -10,8 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: Swatinem/rust-cache@v1
-        with: 
-          working-directory: signaling-app
       - name: Compile Rust
         run: |
           cargo +stable build --release
