@@ -138,11 +138,13 @@ fn get_root_filter(crypto_key: Option<String>) -> impl Filter<Extract = impl Rep
 
     let ws_short_crypt = crypto_key.map(ShortCrypt::new).map(Arc::new);
     let sse_short_crypt = ws_short_crypt.clone();
-    let ws_encrypted = warp::path("code/ws")
+    let ws_encrypted = warp::path("code")
+        .and(warp::path("ws"))
         .and(with_tail_path())
         .and_then(move |s| decrypt_subject(s, ws_short_crypt.clone()))
         .and(with_value(sender.clone()));
-    let sse_encrypted = warp::path("code/sse")
+    let sse_encrypted = warp::path("code")
+        .and(warp::path("sse"))
         .and(with_tail_path())
         .and_then(move |s| decrypt_subject(s, sse_short_crypt.clone()))
         .and(with_value(sender.clone()));
