@@ -17,12 +17,12 @@ use warp::{
     Filter, Reply,
 };
 
-type Subject = (String, Value);
+type Subject = (String, String);
 
 fn stream_filtered_for_subject<T: Stream<Item = Result<Subject, impl Error>>>(
     subject: String,
     subject_stream: T,
-) -> impl Stream<Item = Result<Value, warp::Error>> {
+) -> impl Stream<Item = Result<String, warp::Error>> {
     subject_stream.filter_map(move |message_result| {
         if let Ok((message_subject, value)) = message_result {
             if message_subject == subject {
@@ -38,15 +38,14 @@ fn compose_ws_filter<
 >(
     base: Base,
 ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    base.and(warp::ws()).map(
-        |subject: String, sender: Arc<Sender<(String, Value)>>, ws: Ws| {
+    base.and(warp::ws())
+        .map(|subject: String, sender: Arc<Sender<Subject>>, ws: Ws| {
             ws.on_upgrade(|socket| async move {
                 let (sink, mut stream) = socket.split();
 
                 let subject_stream = BroadcastStream::new(sender.subscribe());
                 let subject_copy = subject.clone();
-                let mut sink_wrap =
-                    sink.with(|value: Value| future::ok(Message::text(value.to_string())));
+                let mut sink_wrap = sink.with(|value: String| future::ok(Message::text(value)));
 
                 let listen = spawn(async move {
                     sink_wrap
@@ -69,15 +68,14 @@ fn compose_ws_filter<
                     };
                     if let Some((to, value)) = format_send() {
                         sender
-                            .send((to, value))
+                            .send((to, value.to_string()))
                             .map_err(|e| eprintln!("{:?}", e))
                             .unwrap();
                     }
                 }
                 listen.abort()
             })
-        },
-    )
+        })
 }
 
 fn compose_sse_filter<
@@ -90,7 +88,7 @@ fn compose_sse_filter<
             warp::sse::reply(
                 warp::sse::keep_alive().stream(
                     stream_filtered_for_subject(subject, BroadcastStream::new(sender.subscribe()))
-                        .map_ok(|v| Event::default().json_data(v).unwrap()),
+                        .map_ok(|v| Event::default().data(v)),
                 ),
             )
         })
@@ -155,7 +153,7 @@ fn get_root_filter(crypto_key: Option<String>) -> impl Filter<Extract = impl Rep
         .and(warp::post())
         .and(warp::body::json())
         .map(|subject, sender: Arc<Sender<Subject>>, body: Value| {
-            sender.send((subject, body)).ok();
+            sender.send((subject, body.to_string())).ok();
             warp::reply()
         });
 
