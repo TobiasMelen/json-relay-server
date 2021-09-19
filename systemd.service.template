@@ -3,7 +3,7 @@ Description=Relay server service.
 
 [Service]
 Type=simple
-ExecStart=$APP_NAME
+ExecStart=$APP_NAME -k=${CRYPTO_KEY}
 
 [Install]
 WantedBy=multi-user.target

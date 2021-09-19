@@ -19,7 +19,9 @@ jobs:
         run: cargo +stable build --release
       
       - name: Format Systemd unit file
-        run: envsubst < systemd.service > $APP_NAME.service
+        run: envsubst < systemd.service.template > $APP_NAME.service
+        env:
+          CRYPTO_KEY: ${{ secrets.CRYPTO_KEY }}
 
       # Credits https://stackoverflow.com/a/60479844
       - name: Copy SSH key and known hosts

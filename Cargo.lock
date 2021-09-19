@@ -9,10 +9,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "base32"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23ce669cd6c8588f79e15cf450314f9638f967fc5770ff1c7c1deb0925ea7cfa"
+
+[[package]]
 name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
+name = "base64-url"
+version = "1.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44265cf903f576fcaa1c2f23b32ec2dadaa8ec9d6b7c6212704d72a417bfbeef"
+dependencies = [
+ "base64",
+]
 
 [[package]]
 name = "bitflags"
@@ -65,6 +80,21 @@ checksum = "95059428f66df56b63431fdb4e1947ed2190586af5c5a8a8b71122bdf5a7f469"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "crc-any"
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c268ef4daf6fe48c6794ffb5e138afb6ea405b7987ec8f8501b817a84a56d6"
+dependencies = [
+ "debug-helper",
+]
+
+[[package]]
+name = "debug-helper"
+version = "0.3.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76fbd10dce159c002b9c688ae8ab7cd531151e185e0ad360f4bfea3b0eede3a8"
 
 [[package]]
 name = "digest"
@@ -385,6 +415,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "serde_json",
+ "short-crypt",
  "tokio",
  "tokio-stream",
  "warp",
@@ -787,6 +818,18 @@ dependencies = [
  "cpufeatures",
  "digest",
  "opaque-debug",
+]
+
+[[package]]
+name = "short-crypt"
+version = "1.0.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54ee7222fe5175d406cf59c44ff524601fb1f0ab855c1f2bb704f6926099c55f"
+dependencies = [
+ "base32",
+ "base64-url",
+ "crc-any",
+ "debug-helper",
 ]
 
 [[package]]
