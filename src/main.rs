@@ -17,16 +17,17 @@ use warp::{
     Filter, Reply,
 };
 
-type Subject = (String, String);
+//Avoid cloning string to all subscribers by wrapping in shared arc first
+type StreamMessage = Arc<(String, String)>;
 
-fn stream_filtered_for_subject<T: Stream<Item = Result<Subject, impl Error>>>(
+fn stream_filtered_for_subject<T: Stream<Item = Result<StreamMessage, impl Error>>>(
     subject: String,
     subject_stream: T,
 ) -> impl Stream<Item = Result<String, warp::Error>> {
     subject_stream.filter_map(move |message_result| {
-        if let Ok((message_subject, value)) = message_result {
-            if message_subject == subject {
-                return future::ready(Some(Ok(value)));
+        if let Ok(v) = message_result {
+            if v.0 == subject {
+                return future::ready(Some(Ok(v.1.to_string())));
             }
         }
         future::ready(None)
@@ -34,12 +35,12 @@ fn stream_filtered_for_subject<T: Stream<Item = Result<Subject, impl Error>>>(
 }
 
 fn compose_ws_filter<
-    Base: Filter<Extract = (String, Arc<Sender<Subject>>), Error = Rejection> + Clone,
+    Base: Filter<Extract = (String, Arc<Sender<StreamMessage>>), Error = Rejection> + Clone,
 >(
     base: Base,
 ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    base.and(warp::ws())
-        .map(|subject: String, sender: Arc<Sender<Subject>>, ws: Ws| {
+    base.and(warp::ws()).map(
+        |subject: String, sender: Arc<Sender<StreamMessage>>, ws: Ws| {
             ws.on_upgrade(|socket| async move {
                 let (sink, mut stream) = socket.split();
 
@@ -68,23 +69,24 @@ fn compose_ws_filter<
                     };
                     if let Some((to, value)) = format_send() {
                         sender
-                            .send((to, value.to_string()))
+                            .send(Arc::new((to, value.to_string())))
                             .map_err(|e| eprintln!("{:?}", e))
                             .unwrap();
                     }
                 }
                 listen.abort()
             })
-        })
+        },
+    )
 }
 
 fn compose_sse_filter<
-    BaseFilter: Filter<Extract = (String, Arc<Sender<Subject>>), Error = Rejection> + Clone,
+    BaseFilter: Filter<Extract = (String, Arc<Sender<StreamMessage>>), Error = Rejection> + Clone,
 >(
     base: BaseFilter,
 ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     base.and(warp::get())
-        .map(|subject, sender: Arc<Sender<Subject>>| {
+        .map(|subject, sender: Arc<Sender<StreamMessage>>| {
             warp::sse::reply(
                 warp::sse::keep_alive().stream(
                     stream_filtered_for_subject(subject, BroadcastStream::new(sender.subscribe()))
@@ -124,7 +126,7 @@ fn with_tail_path() -> impl Filter<Extract = (String,), Error = Rejection> + Clo
 }
 
 fn get_root_filter(crypto_key: Option<String>) -> impl Filter<Extract = impl Reply> + Clone {
-    let sender = Arc::new(broadcast::channel::<Subject>(100).0);
+    let sender = Arc::new(broadcast::channel::<StreamMessage>(100).0);
 
     let ws = warp::path("ws")
         .and(with_tail_path())
@@ -152,8 +154,8 @@ fn get_root_filter(crypto_key: Option<String>) -> impl Filter<Extract = impl Rep
         .and(with_value(sender.clone()))
         .and(warp::post())
         .and(warp::body::json())
-        .map(|subject, sender: Arc<Sender<Subject>>, body: Value| {
-            sender.send((subject, body.to_string())).ok();
+        .map(|subject, sender: Arc<Sender<StreamMessage>>, body: Value| {
+            sender.send(Arc::new((subject, body.to_string()))).ok();
             warp::reply()
         });
 
