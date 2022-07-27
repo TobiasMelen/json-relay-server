@@ -201,3 +201,71 @@ async fn main() {
         .await;
     println!("Stopped serving")
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use crate::get_root_filter;
+    use futures::{select, FutureExt, TryFutureExt};
+    use serde_json::{from_str, json, Value};
+    use warp::{test::WsClient, Filter, Reply};
+
+    const SUBJECT: &str = "subject";
+    const MESSAGE: &str = "message from sender";
+
+    async fn timeout<F: futures::Future>(future: F) -> F::Output {
+        select! {
+            _ = tokio::time::sleep(Duration::from_millis(100)).fuse() => panic!("Timed out"),
+            r = future.fuse() => r
+        }
+    }
+
+    async fn connect_ws<F>(filter: F) -> WsClient
+    where
+        F: Filter + Clone + Send + Sync + 'static,
+        F::Extract: Reply,
+    {
+        warp::test::ws()
+            .path(&format!("/ws/{SUBJECT}"))
+            .handshake(filter)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn ws_to_ws_message() {
+        let filter = get_root_filter(None);
+        let mut receiver = connect_ws(filter.clone()).await;
+        let mut sender = connect_ws(filter).await;
+        let receive = receiver.recv().map_ok(|s| {
+            let json = from_str::<Value>(s.to_str().expect("No text received")).unwrap();
+            let received_message = json.get("message").unwrap();
+            assert_eq!(MESSAGE, received_message, "Message did not match");
+        });
+        sender
+            .send_text(json!({"to": SUBJECT, "message": MESSAGE}).to_string())
+            .await;
+        receive.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn http_to_ws_message() {
+        let filter = get_root_filter(None);
+        let mut receiver = connect_ws(filter.clone()).await;
+        let receive = receiver.recv().map_ok(|s| {
+            let json = from_str::<Value>(s.to_str().expect("No text received")).unwrap();
+            let received_message = json.get("message").unwrap();
+            assert_eq!(MESSAGE, received_message, "Message did not match");
+        });
+        let post = warp::test::request()
+            .method("POST")
+            .path(&format!("/http/{SUBJECT}"))
+            .json(&json!({ "message": MESSAGE }))
+            .reply(&filter)
+            .await
+            .status();
+        assert_eq!(200, post);
+        timeout(receive).await.unwrap();
+    }
+}
